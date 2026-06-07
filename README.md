@@ -1,81 +1,98 @@
-# myserver-for-me
-집에서 사용하기 편하려고 만드는 서버
+# secure-webdav-on-aws
 
-## 전제 조건
-아래의 것들은 필수로 있어야 합니다
+VPN(WireGuard)를 통해 접속하여 안전하게 내부의 데이터에 접근할 수 있는 파일 서버 시스템<br>
 
-- Docker/Docker Desktop 설치
-- Github 에 연결 가능한 인터넷
-- Windows 를 사용중인 경우, WSL2 설치
-- info.env 의 작성
-- 과자 한 봉지
 
-### info.env 의 작성
-환경 변수를 저장하는 파일이며 직접 작성해야합니다.<br>
+## Overview
 
-작성 위치: 리포지토리를 클론 한 디렉토리
+| Item | Detail |
+|---|---|
+| VPN | WireGuard |
+| File Server | Apache (mod_dav) |
+| Container | Docker / Docker Compose |
+| Infrastructure | Terraform |
+| Storage | Amazon S3 Files (NFS mount) |
+| CI/CD | GitHub Actions |
 
-### 작성 내용
-USERNAME=[webdav에서 사용할 유저 이름]<br>
-PASSWORD=[webdav 유저의 비밀번호]<br>
-NOIPADDRESS=[no-ip에 등록한 계정]<br>
-NOIPPASSWORD=[no-ip에 등록한 계정 비밀번호]<br>
 
-<br>
+## Architecture
 
-**예**
-```
-USENAME=imuser
-PASSWORD=itspassword
-NOIPADDRESS=noipaddress@gmail.com
-NOIPPASSWORD=noippassword
-```
+![Alt text](/myserver-for-me/architecture.png)
+
+### Why this design?
+
+**WireGuard over OpenVPN**  
+openVPN보다 설정이 단순하며 빠르기 때문에 WireGuard를 선택
+
+**Apache mod_dav over Nginx + dav-ext**  
+아파치 내장 모듈 중 mod_dav 모듈은 기본적인 제공 서비스로 필요한 파일 서버로서의 기능을 만족하므로 사용
+
+**S3 Files**  
+이전의 권장 사항 대로라면 다수의 ECS 컨테이너에 마운트 할 수 있는 볼륨으로서는 EFS가 추천되었지만,
+S3 Files가 네이티브 NFS 볼륨으로 마운트 가능하게 되었으므로 적용(GA April 2026)
+
+(1) 항상 사용하기 보다 가끔 사용하기에 적합
+(2) 비용이 저렴함
+위의 두 가지 항목에 초점을 두었음
+
+**ECS**  
+파일 서버는 접속 했을 때 바로 응답해야하기 때문에 콜드 스타트가 있는 방식은 적합하지 않음
 
 ---
 
-## 진행 상황
-### 설치됨
-
-1. webdav
-2. VPN(OpenVPN)
-3. DDNS(NO-IP)
-
-### 설치 예정
-
-1. HTTPS 보안
-
-
-
-## 클라이언트용 opvn 파일 작성
-openvpn 서버 컨테이너가 실행되었을 때 openvpn 폴더가 생성되며 그 안에 인증서가 복사 됩니다.
-
-### Windows의 경우
-client.ovpn
+## Repository Structure
 
 ```
-client
-dev tun
-proto udp
-remote [서버주소] 1194
-resolv-retry infinite
-nobind
-persist-key
-persist-tun
-remote-cert-tls server
-cipher AES-256-GCM
-auth SHA256
-verb 3
-
-<ca>
-(ca.crt 내용)
-</ca>
-<cert>
-(client.crt 내용)
-</cert>
-<key>
-(client.key 내용)
-</key>
+secure-webdav-on-aws/
+├── docker/
+│   ├── wireguard/
+│   │   └── Dockerfile
+│   └── webdav/
+│       └── Dockerfile
+├── terraform/
+│   ├── main.tf
+│   ├── variables.tf
+│   └── outputs.tf
+├── docker-compose.yml 
+├── .env.example
+└── README.md
 ```
 
-[서버주소] 는 localhost 또는 DDNS 주소 등 자신이 필요한 도메인을 삽입하면 됩니다.
-포트는 기본 1194/udp를 사용하고 있습니다.
+## Getting Started
+
+이후 작성 예정
+
+## Cost Management
+
+사용하는 경우에만 리소를 작성해서 사용할 수 있도록 ON/OFF 기능을 추가
+
+```bash
+# Bring down (ECS only — S3 data is preserved)
+terraform destroy -target=aws_ecs_service.wireguard \
+                  -target=aws_ecs_service.webdav
+
+# Bring back up
+terraform apply
+```
+
+**Estimated cost while running:** ~$0.02–0.05/hour (ECS Fargate t-class)  
+**Estimated cost while stopped:** S3 storage only (~$0.023/GB-month)
+
+
+
+## Connecting a Client
+
+추가 예정
+
+
+## Troubleshooting
+
+추가 예정
+
+
+## Future Improvements
+
+- [ - ] 로컬 PC 에서 구축 후 외부에서 연결
+- [ - ] WireGuard 피어 키 자동 생성
+- [ - ] Lambda + API Gateway로 ON/OFF 가능한 엔드포인트 작성
+- [ - ] 스토리지 자동 백업
