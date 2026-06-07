@@ -26,6 +26,7 @@ openVPN보다 설정이 단순하며 빠르기 때문에 WireGuard를 선택
 
 **Apache mod_dav over Nginx + dav-ext**  
 아파치 내장 모듈 중 mod_dav 모듈은 기본적인 제공 서비스로 필요한 파일 서버로서의 기능을 만족하므로 사용
+내부 통신(ECS 내부)은 비암호화 방식으로 진행
 
 **S3 Files**  
 이전의 권장 사항 대로라면 다수의 ECS 컨테이너에 마운트 할 수 있는 볼륨으로서는 EFS가 추천되었지만,
@@ -87,7 +88,18 @@ terraform apply
 
 ## Troubleshooting
 
-추가 예정
+### 1. wireguard 컨테이너에서 webdav 호스트명을 찾지 못함
+원인: docker-compose.yml 에서 wireguard 컨테이너에 networks 설정 누락<br>
+해결: wireguard 서비스에 vpn_network 추가(동일한 네트워크로 구성)<br>
+
+### 2. WebDAV 접속시 500 에러
+원인: .htpasswd 파일 미생성<br>
+해결: entrypoint.sh 에서 컨테이너 시작시 htpasswd 명령어로 자동 생성<br>
+`htpasswd -cb /usr/local/apache2/conf/.htpasswd "$WEBDAV_USER" "$WEBDAV_PASSWORD"`
+
+### 3. WebDAV 접속시 301 리다이렉트
+원인: URL 끝에 슬래시 누락 `docker exec -it wireguard curl -u admin:changeme http://webdav:80/webdav` <br>
+해결: /webdav/ 로 접속<br>
 
 
 ## Future Improvements

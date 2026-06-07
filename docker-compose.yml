@@ -1,38 +1,44 @@
-version: "3.8"
-
 services:
-  webdav:
-    build: 
-      context: .
-      dockerfile: ./Dockerfile_webdav
-    container_name: webdav
-    ports:
-      - "8080:80"
-    volumes:
-      - /e/Media:/var/www/html/webdav
-    env_file:
-      - info.env
-  
-  openvpn:
-    build: 
-      context: .
-      dockerfile: ./Dockerfile_vpn
-    container_name: openvpn
-    cap_add:
+  wireguard:
+    build: ./docker/wireguard
+    container_name: wireguard
+    cap_add: # 필요 권한 부여
       - NET_ADMIN
-    devices:
-      - /dev/net/tun
-    ports:
-      - "1194:1194/udp"
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Seoul
+      - SERVERURL=${WG_HOST}
+      - SERVERPORT=${WG_PORT}
+      - PEERS=${WG_PEERS}
+      - PEERDNS=auto
+      - INTERNAL_SUBNET=10.13.13.0
     volumes:
-      - ./openvpn:/home/openvpn
-    env_file:
-      - info.env
-  
-  ddns:
-    build: 
-      context: .
-      dockerfile: ./Dockerfile_ddns
-    container_name: ddns
-    env_file:
-      - info.env
+      - ./config/wireguard:/config
+    ports:
+      - "${WG_PORT}:51820/udp"
+    sysctls: # 패킷 라우팅 커널 파라미터 수정
+      - net.ipv4.conf.all.src_valid_mark=1
+    networks:
+      - vpn_network
+    restart: unless-stopped
+
+  webdav:
+    build: ./docker/webdav
+    container_name: webdav
+    environment:
+      - WEBDAV_USER=${WEBDAV_USER}
+      - WEBDAV_PASSWORD=${WEBDAV_PASSWORD}
+    volumes: # S3 Files NFS로 교체
+      - webdav_data:/var/webdav
+    networks:
+      - vpn_network
+    restart: unless-stopped
+
+networks:
+  vpn_network:
+    driver: bridge
+
+volumes:
+  webdav_data:
