@@ -101,6 +101,11 @@ terraform apply
 원인: URL 끝에 슬래시 누락 `docker exec -it wireguard curl -u admin:changeme http://webdav:80/webdav` <br>
 해결: /webdav/ 로 접속<br>
 
+### 4. WebDAV 파일 업로드시 500 에러 (DBM 드라이버 문제)
+원인: Alpine 3.13 이후 apr-util-dbm_db 패키지가 제거됨<br>
+    DavLockDB 가 의존하는 DBM 드라이버를 로드할 수 없음<br>
+해결: httpd:2.4-alpine → httpd:2.4 (Debian) 로 베이스 이미지 교체<br>
+
 
 ## Future Improvements
 

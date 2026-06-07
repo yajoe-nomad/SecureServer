@@ -1,4 +1,4 @@
-FROM httpd:2.4-alpine
+FROM httpd:2.4
 
 # WebDAV 관련 모듈 활성화
 RUN sed -i \
@@ -13,12 +13,13 @@ COPY webdav.conf /usr/local/apache2/conf/extra/webdav.conf
 # httpd.conf 에 webdav.conf 를 include
 RUN echo "Include conf/extra/webdav.conf" >> /usr/local/apache2/conf/httpd.conf
 
-# WebDAV 잠금 파일 디렉토리
-RUN mkdir -p /usr/local/apache2/var/
+# WebDAV 잠금 파일 디렉토리 + 소유권 설정
+RUN mkdir -p /usr/local/apache2/var/ && \
+    chown -R www-data:www-data /usr/local/apache2/var/
 
 # 파일 저장 디렉토리
 RUN mkdir -p /var/webdav && \
-    chown -R daemon:daemon /var/webdav
+    chown -R www-data:www-data /var/webdav
 
 # entrypoint 스크립트 복사
 COPY entrypoint.sh /entrypoint.sh
