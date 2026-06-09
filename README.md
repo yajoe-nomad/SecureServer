@@ -17,27 +17,27 @@ VPN(WireGuard)를 통해 접속하여 안전하게 내부의 데이터에 접근
 
 ## Architecture
 
-![Alt text](/myserver-for-me/architecture.png)
+![Alt text](/secure-webdav-on-aws/architecture.png)
 
 ### Why this design?
 
 **WireGuard over OpenVPN**  
-openVPN보다 설정이 단순하며 빠르기 때문에 WireGuard를 선택
+openVPN보다 설정이 단순하며 빠르기 때문에 WireGuard를 선택<br>
 
 **Apache mod_dav over Nginx + dav-ext**  
-아파치 내장 모듈 중 mod_dav 모듈은 기본적인 제공 서비스로 필요한 파일 서버로서의 기능을 만족하므로 사용
-내부 통신(ECS 내부)은 비암호화 방식으로 진행
+아파치 내장 모듈 중 mod_dav 모듈은 기본적인 제공 서비스로 필요한 파일 서버로서의 기능을 만족하므로 사용<br>
+내부 통신(ECS 내부)은 비암호화 방식으로 진행<br>
 
 **S3 Files**  
-이전의 권장 사항 대로라면 다수의 ECS 컨테이너에 마운트 할 수 있는 볼륨으로서는 EFS가 추천되었지만,
-S3 Files가 네이티브 NFS 볼륨으로 마운트 가능하게 되었으므로 적용(GA April 2026)
+이전의 권장 사항 대로라면 다수의 ECS 컨테이너에 마운트 할 수 있는 볼륨으로서는 EFS가 추천되었지만,<br>
+S3 Files가 네이티브 NFS 볼륨으로 마운트 가능하게 되었으므로 적용(GA April 2026)<br>
 
-(1) 항상 사용하기 보다 가끔 사용하기에 적합
-(2) 비용이 저렴함
-위의 두 가지 항목에 초점을 두었음
+(1) 항상 사용하기 보다 가끔 사용하기에 적합<br>
+(2) 비용이 저렴함<br>
+위의 두 가지 항목에 초점을 두었음<br>
 
 **ECS**  
-파일 서버는 접속 했을 때 바로 응답해야하기 때문에 콜드 스타트가 있는 방식은 적합하지 않음
+파일 서버는 접속 했을 때 바로 응답해야하기 때문에 콜드 스타트가 있는 방식은 적합하지 않음<br>
 
 ---
 
@@ -65,7 +65,7 @@ secure-webdav-on-aws/
 
 ## Cost Management
 
-사용하는 경우에만 리소를 작성해서 사용할 수 있도록 ON/OFF 기능을 추가
+필요한 경우에만 사용할 수 있도록 ON/OFF 기능을 추가
 
 ```bash
 # Bring down (ECS only — S3 data is preserved)
@@ -75,10 +75,6 @@ terraform destroy -target=aws_ecs_service.wireguard \
 # Bring back up
 terraform apply
 ```
-
-**Estimated cost while running:** ~$0.02–0.05/hour (ECS Fargate t-class)  
-**Estimated cost while stopped:** S3 storage only (~$0.023/GB-month)
-
 
 
 ## Connecting a Client
@@ -105,6 +101,14 @@ terraform apply
 원인: Alpine 3.13 이후 apr-util-dbm_db 패키지가 제거됨<br>
     DavLockDB 가 의존하는 DBM 드라이버를 로드할 수 없음<br>
 해결: httpd:2.4-alpine → httpd:2.4 (Debian) 로 베이스 이미지 교체<br>
+
+### 5. WireGuard 연결시 내부 통신 외 통신 불가 현상
+원인: Docker 브리지 네트워크 대역(192.168.0.0/24)과 VPN 내부 대역(10.13.13.0/24)과 맞지 않음<br>
+    WireGuard의 허용 IP에서 도커 브리지 네트워크로 갈 수 있는 설정이 존재하지 않았음<br>
+해결: 도커 브리지 네트워크 대역에서 로컬 네트워크 대역과 충돌할 수 있는 가능성을 피하기 위해 172.28.0.0/24 로 변경<br>
+    VPN 클라이언트가 10.13.13.1(VPN 서버IF)에 webdav/ 요청을 하면 WireGuard 서버가 WebDAV 서버로 라우팅을 하도록 변경 `iptables -t nat -A PREROUTING -i wg0 -p tcp --dport 80 -j DNAT --to-destination 172.28.0.201:80`<br>
+    => WireGuard 서버에 WebDAV 서버에 대해서 등록(라우팅)하는 규칙을 생성해서 해결
+    
 
 
 ## Future Improvements
