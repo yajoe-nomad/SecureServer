@@ -66,7 +66,7 @@ resource "aws_route_table_association" "public" {
 # 시큐리티 그룹
 resource "aws_security_group" "main" {
   name = "${var.project_name}-SG"
-  description = "${var.project_name} 을 위한 시큐리티 그룹"
+  description = "${var.project_name} security group"
   vpc_id = aws_vpc.main.id
 
   ingress {
@@ -78,8 +78,8 @@ resource "aws_security_group" "main" {
   }
 
   ingress {
-    from_port = 22
-    to_port = 22
+    from_port = var.ssh_port
+    to_port = var.ssh_port
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
     description = "SSH"
@@ -132,8 +132,12 @@ resource "aws_instance" "main" {
     # 시스템 업데이트
     dnf update -y
 
+    # SSH 포트 변경(22 -> 22222)
+    sed -i 's/#Port 22/Port ${var.ssh_port}/' /etc/ssh/sshd_config
+    systemctl restart sshd
+
     # Docker 설치
-    dnf install -y docker
+    dnf install -y docker git
     systemctl enable docker
     systemctl start docker
 
@@ -141,22 +145,28 @@ resource "aws_instance" "main" {
     curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose
 
-    # 프로젝트 디렉토리 생성
-    mkdir -p /app
-    cd /app
+    # Docker buildx 설치
+    # AL2023에는 buildx가 기본적으로 포함되어 있지만, 0.17.0 이상이 필요하므로 별도로 설치
+    mkdir -p ~/.docker/cli-plugins
+    ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+    BUILDX_URL=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest | grep "browser_download_url.*linux-$ARCH" | cut -d '"' -f 4)
+    curl -L $BUILDX_URL -o ~/.docker/cli-plugins/docker-buildx
+    chmod +x ~/.docker/cli-plugins/docker-buildx
 
-    # .env 파일 생성
-    cat > .env <<ENVFILE
-    WEBDAV_USER=${var.webdav_user}
-    WEBDAV_PASSWORD=${var.webdav_password}
-    WG_HOST=${aws_eip.main.public_ip}
-    WG_PORT=51820
-    WG_PEERS=${var.wg_peers}
-    ENVFILE
+    # 프로젝트 디렉토리 생성
+    mkdir -p /app/repo
+    cd /app/repo
 
     # docker-compose.yml 복사는 GitHub에서 clone 하도록
-    git clone https://github.com/${var.github_repo}.git /app/repo
-    cd /app/repo
+    git clone https://github.com/${var.github_repo}.git ./
+
+    # .env 파일 생성
+    echo "WEBDAV_USER=${var.webdav_user}" >> .env
+    echo "WEBDAV_PASSWORD=${var.webdav_password}" >> .env
+    echo "WEBDAV_INTERNAL_PORT=80" >> .env
+    echo "WG_HOST=${aws_eip.main.public_ip}" >> .env
+    echo "WG_PORT=${var.wg_port}" >> .env
+    echo "WG_PEERS=${var.wg_peers}" >> .env
 
     # 컨테이너 시작
     docker-compose up -d

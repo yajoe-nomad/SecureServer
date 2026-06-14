@@ -102,12 +102,19 @@ terraform apply
     DavLockDB 가 의존하는 DBM 드라이버를 로드할 수 없음<br>
 해결: httpd:2.4-alpine → httpd:2.4 (Debian) 로 베이스 이미지 교체<br>
 
-### 5. WireGuard 연결시 내부 통신 외 통신 불가 현상
+### 5. WireGuard 연결시 내부 통신 외 통신 불가 현상(로컬 테스트 도중)
 원인: Docker 브리지 네트워크 대역(192.168.0.0/24)과 VPN 내부 대역(10.13.13.0/24)과 맞지 않음<br>
     WireGuard의 허용 IP에서 도커 브리지 네트워크로 갈 수 있는 설정이 존재하지 않았음<br>
 해결: 도커 브리지 네트워크 대역에서 로컬 네트워크 대역과 충돌할 수 있는 가능성을 피하기 위해 172.28.0.0/24 로 변경<br>
     VPN 클라이언트가 10.13.13.1(VPN 서버IF)에 webdav/ 요청을 하면 WireGuard 서버가 WebDAV 서버로 라우팅을 하도록 변경 `iptables -t nat -A PREROUTING -i wg0 -p tcp --dport 80 -j DNAT --to-destination 172.28.0.201:80`<br>
     => WireGuard 서버에 WebDAV 서버에 대해서 등록(라우팅)하는 규칙을 생성해서 해결
+
+### 6. AL2023에서의 Docker builx 업그레이드
+AL2023에서는 Docker builx가 Docker Compose를 실행할 수 있는 최소 버전을 충족시키지 못함<br>
+그러므로 USER DATA으로부터의 도커 실행이 실패하고 있었음<br>
+curl 명령어로 직접파일을 다운로드 받아 적용시켜서 해결함
+<br>
+https://github.com/amazonlinux/amazon-linux-2023/issues/1032#issuecomment-3874686692<br>
     
 
 

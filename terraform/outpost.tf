@@ -25,5 +25,5 @@ output "webdav_url" {
 
 output "ssh_command" {
   description = "EC2 SSH 접속 커맨드"
-  value = "ssh -i ~/.ssh/id_rsa ec2-user@${aws_eip.main.public_ip}"
+  value = "ssh -i ~/.ssh/id_rsa -p ${var.ssh_port} ec2-user@${aws_eip.main.public_ip}"
 }

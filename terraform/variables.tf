@@ -27,6 +27,12 @@ variable "wg_peers" {
   default = 1
 }
 
+variable "wg_port" {
+  description = "WireGuard 포트"
+  type = number
+  default = 51820
+}
+
 variable "ssh_public_key_path" {
   description = "SSH 공개키 경로"
   type = string
@@ -37,10 +43,16 @@ variable "ssh_public_key_path" {
 variable "ami_id" {
   description = "Amazon Linux 2023(서울 리전)"
   type = string
-  default = "ami-0c9c942bd7bf113a2"
+  default = "ami-00e1a894b4512388e"
 }
 
 variable "github_repo" {
     description = "GitHub URL"
     type = string
+}
+
+variable "ssh_port" {
+  description = "SSH 포트"
+  type        = number
+  default     = 22222
 }
