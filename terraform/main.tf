@@ -158,7 +158,7 @@ resource "aws_instance" "main" {
     cd /app/repo
 
     # docker-compose.yml 복사는 GitHub에서 clone 하도록
-    git clone https://github.com/${var.github_repo}.git ./
+    git clone https://github.com/${var.repository}.git ./
 
     # .env 파일 생성
     echo "WEBDAV_USER=${var.webdav_user}" >> .env
