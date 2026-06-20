@@ -1,13 +1,17 @@
 variable "aws_region" {
   description = "AWS 리전"
   type = string
-  default = "ap-northeast-2" # 서울 리전
 }
 
 variable "project_name" {
   description = "프로젝트 이름"
   type = string
   default = "secure-webdav-on-aws"
+}
+
+variable "repository" {
+  description = "GitHub 저장소 URL"
+  type = string
 }
 
 variable "webdav_user" {

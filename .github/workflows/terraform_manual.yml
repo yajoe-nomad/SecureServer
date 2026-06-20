@@ -19,6 +19,11 @@ jobs:
   plan:
     name: Terraform 계획
     runs-on: ubuntu-latest
+    env: # Github Secrets에서 환경 변수 설정
+      TF_VAR_webdav_user: ${{ secrets.WEBDAV_USER }}
+      TF_VAR_webdav_password: ${{ secrets.WEBDAV_PASSWORD }}
+      TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+      TF_VAR_repository: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
 
@@ -56,7 +61,6 @@ jobs:
           terraform_version: 1.5.0
 
       - name: AWS 자격증명 설정
-        # if: ${{ secrets.AWS_ROLE_ARN }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
