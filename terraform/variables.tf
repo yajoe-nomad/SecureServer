@@ -6,7 +6,6 @@ variable "aws_region" {
 variable "project_name" {
   description = "프로젝트 이름"
   type = string
-  default = "secure-webdav-on-aws"
 }
 
 variable "repository" {
@@ -37,10 +36,9 @@ variable "wg_port" {
   default = 51820
 }
 
-variable "ssh_public_key_path" {
-  description = "SSH 공개키 경로"
+variable "ssh_public_key" {
+  description = "SSH 공개키"
   type = string
-  default = "~/.ssh/id_rsa.pub"
 }
 
 # AMI는 경량화되어 있고 관리할 필요가 없는 Amazon Linux 2023을 사용
@@ -50,13 +48,7 @@ variable "ami_id" {
   default = "ami-00e1a894b4512388e"
 }
 
-variable "github_repo" {
-    description = "GitHub URL"
-    type = string
-}
-
 variable "ssh_port" {
   description = "SSH 포트"
   type        = number
-  default     = 22222
 }

@@ -110,7 +110,7 @@ resource "aws_eip" "main" {
 # SSH 키페어
 resource "aws_key_pair" "main" {
   key_name = "${var.project_name}-key"
-  public_key = file(var.ssh_public_key_path)
+  public_key = var.ssh_public_key
 
   tags = {
     Name = "${var.project_name}-key"
