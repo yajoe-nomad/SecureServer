@@ -1,0 +1,88 @@
+name: Terraform 수동 작업
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: '작업 선택: plan(계획), apply(적용), destroy(삭제)'
+        required: true
+        default: 'plan'
+      auto_approve:
+        description: 'yes 선택 시 apply/destroy가 자동으로 실행됨'
+        required: false
+        default: 'no'
+
+jobs:
+  plan:
+    name: Terraform 계획
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Terraform 설치
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform 초기화
+        working-directory: terraform
+        run: terraform init -input=false
+
+      - name: Terraform 계획 생성
+        working-directory: terraform
+        run: terraform plan -out=tfplan -input=false
+
+      - name: 계획 파일 저장
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/tfplan
+
+  apply_or_destroy:
+    name: 적용 또는 삭제
+    needs: plan
+    if: ${{ github.event.inputs.operation == 'apply' || github.event.inputs.operation == 'destroy' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Terraform 설치
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: AWS 자격증명 설정
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: 계획 파일 다운로드
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: terraform
+
+      - name: Terraform 적용
+        if: ${{ github.event.inputs.operation == 'apply' }}
+        working-directory: terraform
+        run: |
+          if [ "${{ github.event.inputs.auto_approve }}" = "yes" ]; then
+            terraform apply -input=false -auto-approve terraform/tfplan
+          else
+            terraform apply -input=false terraform/tfplan
+          fi
+
+      - name: Terraform 삭제
+        if: ${{ github.event.inputs.operation == 'destroy' }}
+        working-directory: terraform
+        run: |
+          if [ "${{ github.event.inputs.auto_approve }}" = "yes" ]; then
+            terraform destroy -auto-approve -input=false
+          else
+            echo "리소스 삭제는 명시적 확인이 필요합니다. auto_approve=yes로 다시 실행해주세요."
+            exit 1
+          fi
