@@ -58,7 +58,7 @@ jobs:
         with:
           name: tfplan
           path: |
-            tfplan
+            terraform/tfplan
 
   apply_or_destroy:
     name: 적용 또는 삭제
@@ -99,9 +99,9 @@ jobs:
         working-directory: terraform
         run: |
           if [ "${{ github.event.inputs.auto_approve }}" = "yes" ]; then
-            terraform apply -input=false -auto-approve tfplan
+            terraform apply -input=false -auto-approve terraform/tfplan
           else
-            terraform apply -input=false tfplan
+            terraform apply -input=false terraform/tfplan
           fi
 
       - name: Terraform 삭제
