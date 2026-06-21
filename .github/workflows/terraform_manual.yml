@@ -89,6 +89,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan
+          path: .
 
       - name: Terraform 초기화
         working-directory: terraform
@@ -99,9 +100,9 @@ jobs:
         working-directory: terraform
         run: |
           if [ "${{ github.event.inputs.auto_approve }}" = "yes" ]; then
-            terraform apply -input=false -auto-approve terraform/tfplan
+            terraform apply -input=false -auto-approve tfplan
           else
-            terraform apply -input=false terraform/tfplan
+            terraform apply -input=false tfplan
           fi
 
       - name: Terraform 삭제
