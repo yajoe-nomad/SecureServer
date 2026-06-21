@@ -80,7 +80,6 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: tfplan 관련 파일 다운로드
-      - name: tfplan 관련 파일 다운로드
         uses: actions/download-artifact@v4
         with:
           name: tfplan
