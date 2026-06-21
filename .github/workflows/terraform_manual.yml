@@ -8,7 +8,7 @@ on:
         required: true
         default: 'plan'
       auto_approve:
-        description: 'yes 선택 시 apply/destroy가 자동으로 실행됨'
+        description: '(auto-approve) yes 선택 시 apply/destroy가 자동으로 실행됨'
         required: false
         default: 'no'
 
@@ -63,11 +63,18 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v4
-
+      
+      # 중복처럼 보이지만 각 작업마다 독립적인 실행환경이므로 Terraform 설치와 AWS 자격증명 설정이 필요
       - name: Terraform 설치
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
+      
+      - name: AWS 자격증명 설정
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: 계획 파일 다운로드
         uses: actions/download-artifact@v4
@@ -80,9 +87,9 @@ jobs:
         working-directory: terraform
         run: |
           if [ "${{ github.event.inputs.auto_approve }}" = "yes" ]; then
-            terraform apply -input=false -auto-approve terraform/tfplan
+            terraform apply -input=false -auto-approve tfplan
           else
-            terraform apply -input=false terraform/tfplan
+            terraform apply -input=false tfplan
           fi
 
       - name: Terraform 삭제
