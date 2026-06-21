@@ -59,7 +59,8 @@ jobs:
         with:
           name: tfplan
           path: |
-            {tfplan,.terraform.lock.hcl}
+            terraform/tfplan
+            terraform/.terraform.lock.hcl
 
   apply_or_destroy:
     name: 적용 또는 삭제
@@ -98,7 +99,7 @@ jobs:
 
       - name: Terraform 적용
         if: ${{ github.event.inputs.operation == 'apply' }}
-        # working-directory: terraform
+        working-directory: terraform
         run: |
           if [ "${{ github.event.inputs.auto_approve }}" = "yes" ]; then
             terraform apply -input=false -auto-approve tfplan
