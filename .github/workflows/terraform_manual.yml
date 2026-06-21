@@ -101,9 +101,9 @@ jobs:
         working-directory: terraform
         run: |
           if [ "${{ github.event.inputs.auto_approve }}" = "yes" ]; then
-            terraform apply -input=false -auto-approve tfplan
+            terraform apply -input=false -auto-approve tfplan/tfplan
           else
-            terraform apply -input=false tfplan
+            terraform apply -input=false tfplan/tfplan
           fi
 
       - name: Terraform 삭제
