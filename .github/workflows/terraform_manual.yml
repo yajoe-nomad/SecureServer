@@ -91,6 +91,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan
+          path: terraform
 
       - name: Terraform 초기화
         working-directory: terraform
