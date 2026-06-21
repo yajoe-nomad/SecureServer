@@ -55,7 +55,6 @@ jobs:
           name: tfplan
           path: |
             terraform/tfplan
-            .terrafrom/
             .terraform.lock.hcl
 
   apply_or_destroy:
@@ -83,6 +82,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan
+
+      - name: Terraform 초기화
+        working-directory: terraform
+        run: terraform init -input=false -lockfile=readonly
 
       - name: Terraform 적용
         if: ${{ github.event.inputs.operation == 'apply' }}
