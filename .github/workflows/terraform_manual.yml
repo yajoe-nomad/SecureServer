@@ -27,7 +27,6 @@ env: # Github Secrets에서 환경 변수 설정(Global)
 jobs:
   plan:
     name: Terraform 계획
-    if: ${{ github.event.inputs.operation == 'plan'}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,24 +40,31 @@ jobs:
       - name: Terraform 설치
         uses: hashicorp/setup-terraform@v3
 
+      - name: Terraform 캐시 저장
+        uses: actions/cache@v4
+        with:
+          path: .terraform
+          key: ${{ runner.os }}-terraform-${{ github.run_id }}
+
       - name: Terraform 초기화
         working-directory: terraform
         run: terraform init -input=false
 
       - name: Terraform 계획 생성
         working-directory: terraform
-        run: terraform plan -out=tfplan -input=false
+        run: terraform plan -input=false -out=tfplan
 
-      # - name: tfplan 관련 파일 저장
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: tfplan
-      #     path: |
-      #       terraform/tfplan
-      #       terraform/.terraform.lock.hcl
+      - name: tfplan 관련 파일 저장
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: |
+            tfplan
+            .terraform.lock.hcl
 
   apply_or_destroy:
     name: 적용 또는 삭제
+    needs: plan
     if: ${{ github.event.inputs.operation == 'apply' || github.event.inputs.operation == 'destroy' }}
     runs-on: ubuntu-latest
     environment: production
@@ -69,30 +75,35 @@ jobs:
       - name: Terraform 설치
         uses: hashicorp/setup-terraform@v3
       
+      - name: Terraform 캐시 복원
+        uses: actions/cache@v4
+        with:
+          path: .terraform
+          key: ${{ runner.os }}-terraform-${{ github.run_id }}
+      
       - name: AWS 자격증명 설정
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # - name: tfplan 관련 파일 다운로드
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: tfplan
+      - name: tfplan 관련 파일 다운로드
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: .
 
       - name: Terraform 초기화
         working-directory: terraform
-        run: terraform init
+        run: terraform init -input=false -lockfile=readonly
 
       - name: Terraform 적용
         if: ${{ github.event.inputs.operation == 'apply' }}
         # working-directory: terraform
         run: |
           if [ "${{ github.event.inputs.auto_approve }}" = "yes" ]; then
-            terraform plan -input=false -out=tfplan
             terraform apply -input=false -auto-approve tfplan
           else
-            terraform plan -input=false -out=tfplan
             terraform apply -input=false tfplan
           fi
 
