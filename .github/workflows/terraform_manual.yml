@@ -49,11 +49,14 @@ jobs:
         working-directory: terraform
         run: terraform plan -out=tfplan -input=false
 
-      - name: 계획 파일 저장
+      - name: tfplan 관련 파일 저장
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
-          path: terraform/tfplan
+          path: 
+            terraform/tfplan
+            .terrafrom/
+            .terraform.lock.hcl
 
   apply_or_destroy:
     name: 적용 또는 삭제
@@ -76,11 +79,11 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: 계획 파일 다운로드
+      - name: tfplan 관련 파일 다운로드
         uses: actions/download-artifact@v4
         with:
           name: tfplan
-          path: terraform
+          # path: terraform
 
       - name: Terraform 적용
         if: ${{ github.event.inputs.operation == 'apply' }}
