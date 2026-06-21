@@ -59,8 +59,7 @@ jobs:
         with:
           name: tfplan
           path: |
-            ./tfplan
-            ./.terraform.lock.hcl
+            {tfplan,.terraform.lock.hcl}
 
   apply_or_destroy:
     name: 적용 또는 삭제
