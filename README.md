@@ -130,6 +130,9 @@ Github Actions에서는 멀티 클라우드(AWS 등)와의 연계에서 GitHub O
 이번 프로젝트에 적용하기 위해서 AWS의 IAM에서 'ID 제공업체'(IAM provider)에 github actions를 등록 후 필요한 리소스에 대한 권한을 위해 IAM 역할을 부여했다<br>
 이후 Repository Secrets에 역할의 ARN, 리전에 대한 값을 저장해서 사용함<br>
 
+### 9. tfplan 의 패스 설정, 의존성, 체크섬 해결
+TBD
+
 ## Future Improvements
 
 - [ - ] 로컬 PC 에서 구축 후 외부에서 연결

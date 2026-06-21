@@ -95,8 +95,7 @@ jobs:
 
       - name: Terraform 초기화
         working-directory: terraform
-        # run: terraform init -input=false -lockfile=readonly
-        run: terraform init -input=false
+        run: terraform init -input=false -lockfile=readonly
 
       - name: Terraform 적용
         if: ${{ github.event.inputs.operation == 'apply' }}
