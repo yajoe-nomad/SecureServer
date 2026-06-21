@@ -94,16 +94,16 @@ jobs:
 
       - name: Terraform 초기화
         working-directory: terraform
-        run: terraform init -input=false -lockfile=readonly
+        run: terraform init -input=false
 
       - name: Terraform 적용
         if: ${{ github.event.inputs.operation == 'apply' }}
         working-directory: terraform
         run: |
           if [ "${{ github.event.inputs.auto_approve }}" = "yes" ]; then
-            terraform apply -input=false -auto-approve terraform/tfplan
+            terraform apply -input=false -auto-approve tfplan
           else
-            terraform apply -input=false terraform/tfplan
+            terraform apply -input=false tfplan
           fi
 
       - name: Terraform 삭제
