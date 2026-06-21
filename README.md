@@ -115,8 +115,20 @@ AL2023에서는 Docker builx가 Docker Compose를 실행할 수 있는 최소 �
 curl 명령어로 직접파일을 다운로드 받아 적용시켜서 해결함
 <br>
 https://github.com/amazonlinux/amazon-linux-2023/issues/1032#issuecomment-3874686692<br>
-    
 
+### 7. Github Actions 와의 통합
+이전 버전의 커밋에서는 로컬에 존재하는 Terraform 파일로 로컬에서 암호나 시크릿 키를 직접 변수 파일로 작성했으나<br>
+다른 환경에서 작업할 경우 해당 파일을 공유해야하므로 보안적 문제와 유지보수의 문제가 발생할 것을 우려함.<br>
+Github Actions과 통합해서 필요한 변수는 Repository Secrets를 통해 받아오도록 저장하고, 필요할 때 직접 트리거하여 리소스를 생성할 수 있도록 구성함<br>
+기존 비공개로컬파일에서 값을 읽어오는 방식에서 저장된 변수를 workflow에서 받아와서 테라폼을 실행하도록 함<br>
+
+### 8. OIDC의 적용
+Github Actions에서는 멀티 클라우드(AWS 등)와의 연계에서 GitHub OIDC(OpenID Connect)를 사용할 것을 권고하고 있음<br
+액세스 키 또는 시크릿 키가 탈취되면 거의 모든 권한을 가질 수 있는 가능성이 있으며, 키가 노출되면 무기한 인프라 탈취도 가능하므로 우려해야하는 부분이기도 하다<br>
+그러므로 JWT 토큰을 사용한 단기 유효 자격 증명으로 리포지토리, 브랜치별 제어가 가능한 권한으로 움직이게 끔 함<br>
+<br>
+이번 프로젝트에 적용하기 위해서 AWS의 IAM에서 'ID 제공업체'(IAM provider)에 github actions를 등록 후 필요한 리소스에 대한 권한을 위해 IAM 역할을 부여했다<br>
+이후 Repository Secrets에 역할의 ARN, 리전에 대한 값을 저장해서 사용함<br>
 
 ## Future Improvements
 
