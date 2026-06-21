@@ -53,7 +53,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
-          path: 
+          path: |
             terraform/tfplan
             .terrafrom/
             .terraform.lock.hcl
