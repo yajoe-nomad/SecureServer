@@ -58,8 +58,6 @@ jobs:
         with:
           name: tfplan
           path: |
-            # tfplan파일이 어디있는지 모르겠네
-            # terraform/tfplan 
             tfplant
             .terraform.lock.hcl
 
