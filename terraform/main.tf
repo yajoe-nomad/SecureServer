@@ -182,3 +182,14 @@ resource "aws_eip_association" "main" {
   instance_id = aws_instance.main.id
   allocation_id = aws_eip.main.id
 }
+
+# 백엔드로 S3 사용
+terraform {
+  backend "s3" {
+    bucket = "terraform-backend-${var.project_name}"
+    key    = "terraform/state.tfstate"
+    region = var.aws_region
+    # 동시 수정 방지를 위한 잠금 장치 (DynamoDB)
+    # dynamodb_table = "terraform-lock-table"
+  }
+}

@@ -40,6 +40,7 @@ jobs:
       - name: Terraform 설치
         uses: hashicorp/setup-terraform@v3
 
+      # 캐시 저장은 POST 작업
       - name: Terraform 캐시 저장
         uses: actions/cache@v4
         with:
