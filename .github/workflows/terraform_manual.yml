@@ -51,7 +51,7 @@ jobs:
         run: |
           # 대문자를 소문자로 변환하여 글로벌 env에 저장
           REPO_NAME_LOWER=$(echo "terraform-backend-${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
-          echo "BACKEND_BUCKET_NAME=$REPO_NAME_LOWER" >> $GITHUB_ENV
+          echo "BACKEND_BUCKET_NAME=$REPO_NAME_LOWER" >> $GITHUB_OUTPUT
       
       - name: Terraform 초기화
         working-directory: terraform
