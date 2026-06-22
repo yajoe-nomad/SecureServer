@@ -51,8 +51,7 @@ jobs:
         working-directory: terraform
         run: |
           terraform init -input=false \
-            -backend-config="terraform-backend-${{ github.event.repository.name }} \
-            -backend-config="key=terraform.tfstate" \
+            -backend-config="terraform-backend-${{ github.event.repository.name }}" \
             -backend-config="region=${{ secrets.AWS_REGION }}"
 
       - name: Terraform 계획 생성
@@ -103,7 +102,6 @@ jobs:
         run: |
           terraform init -input=false -lockfile=readonly \
             -backend-config="terraform-backend-${{ github.event.repository.name }} \
-            -backend-config="key=terraform.tfstate" \
             -backend-config="region=${{ secrets.AWS_REGION }}"
 
       - name: Terraform 적용
