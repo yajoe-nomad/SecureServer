@@ -10,34 +10,36 @@ VPN(WireGuard)를 통해 접속하여 안전하게 내부의 데이터에 접근
 | VPN | WireGuard |
 | File Server | Apache (mod_dav) |
 | Container | Docker / Docker Compose |
-| Infrastructure | Terraform |
+| Infrastructure as Code(IaC) | Terraform |
 | Storage | Amazon S3 Files (NFS mount) |
 | CI/CD | GitHub Actions |
 
 
 ## Architecture
 
-![Alt text](/secure-webdav-on-aws/architecture.png)
+![Alt text](/secure-webdav-on-aws/architecture.drawio.png)
 
-### Why this design?
+### 왜 이러한 디자인으로 했는가?
 
 **WireGuard over OpenVPN**  
 openVPN보다 설정이 단순하며 빠르기 때문에 WireGuard를 선택<br>
 
 **Apache mod_dav over Nginx + dav-ext**  
 아파치 내장 모듈 중 mod_dav 모듈은 기본적인 제공 서비스로 필요한 파일 서버로서의 기능을 만족하므로 사용<br>
-내부 통신(ECS 내부)은 비암호화 방식으로 진행<br>
+VPN 컨테이너에 연결하지않으면 접속할 수 없기 때문에 WebDAV와 VPN 컨테이너 간 통신은 비암호화 방식으로 진행<br>
 
 **S3 Files**  
 이전의 권장 사항 대로라면 다수의 ECS 컨테이너에 마운트 할 수 있는 볼륨으로서는 EFS가 추천되었지만,<br>
-S3 Files가 네이티브 NFS 볼륨으로 마운트 가능하게 되었으므로 적용(GA April 2026)<br>
+S3 Files가 네이티브 NFS 볼륨으로 마운트 가능하게 되었다(GA April 2026).<br>
+아래 두 가지 이유 때문에 EFS를 제외하고 S3 Files를 채택<br>
 
 (1) 항상 사용하기 보다 가끔 사용하기에 적합<br>
 (2) 비용이 저렴함<br>
-위의 두 가지 항목에 초점을 두었음<br>
 
-**ECS**  
-파일 서버는 접속 했을 때 바로 응답해야하기 때문에 콜드 스타트가 있는 방식은 적합하지 않음<br>
+**EC2**  
+ECS Fargate를 처음에는 생각했으나 콜드 스타트를 피할 수 없다.<br>
+파일 서버에 접속하기 위해서 리소스 접속, 리소스 생성 대기, ECS 기동 대기의 흐름을 모두 기다리면 수 분이상 기다려야하기 때문에<br>
+ECS Fargate가 아닌 EC2(micro 모델)을 선택하여 필요에 의해 배치할 수 있는 온디맨드형 시스템을 구축했다<br>
 
 ---
 
@@ -45,6 +47,9 @@ S3 Files가 네이티브 NFS 볼륨으로 마운트 가능하게 되었으므로
 
 ```
 secure-webdav-on-aws/
+├── github
+|   └── workflows
+|       └──terraform_manual.yml
 ├── docker/
 │   ├── wireguard/
 │   │   └── Dockerfile
@@ -53,9 +58,8 @@ secure-webdav-on-aws/
 ├── terraform/
 │   ├── main.tf
 │   ├── variables.tf
-│   └── outputs.tf
+│   └── outputs.tf (Optional)
 ├── docker-compose.yml 
-├── .env.example
 └── README.md
 ```
 
@@ -65,16 +69,8 @@ secure-webdav-on-aws/
 
 ## Cost Management
 
-필요한 경우에만 사용할 수 있도록 ON/OFF 기능을 추가
-
-```bash
-# Bring down (ECS only — S3 data is preserved)
-terraform destroy -target=aws_ecs_service.wireguard \
-                  -target=aws_ecs_service.webdav
-
-# Bring back up
-terraform apply
-```
+필요한 경우에만 사용할 수 있도록 Github Actions를 통하여 Workflow를 실행함으로서<br>
+클릭 한 번에 리소스를 배치할 수 있도록 함<br>
 
 
 ## Connecting a Client
@@ -131,11 +127,21 @@ Github Actions에서는 멀티 클라우드(AWS 등)와의 연계에서 GitHub O
 이후 Repository Secrets에 역할의 ARN, 리전에 대한 값을 저장해서 사용함<br>
 
 ### 9. tfplan 의 패스 설정, 의존성, 체크섬 해결
-TBD
+`Terraform init`, `Terraform plan` 시 생성되는 파일은 Github Actions 가상머신의 /Terraform 아래에 다운로드 되도록 설정되어 있으므로 terraform 관련 명령어에는 working-directory: terraform 으로 실행 위치를 지정.<br>
+<br>
+`Terraform apply` 시, .terraform.lock.hcl 파일을 참조하여 프로바이더와 모듈의 정확한 버전 및 체크섬을 확인하지만<br>
+이 체크섬 버전에서 가상머신 OS에 대한 정보가 없어서 시작할 때 에러가 발생.<br>
+윈도우x64, 리눅스x64의 체크섬을 추가하여 정상적으로 읽어올 수 있도록 해결함
+
+### 10. Terraform apply/destroy 간의 상태 파일 연계
+현재 어떠한 리소스가 생성되어 있는지 또는 삭제되어 있는지를 알지 못하면 Terraform은 새로운 리소스를 생성하거나 삭제하려다가 에러를 발생시킨다<br>
+이를 해결할 수 있는 방법으로 S3 버킷에 Terraform 전용 상태 파일을 저장하는 것이었다(state.tfstate)<br>
+<br>
+"terraform-backend-[리포지토리 이름]" 형식으로 버킷을 작성해 연결해주어 상태파일을 관리할 수 있도록 함<br>
 
 ## Future Improvements
 
 - [ - ] 로컬 PC 에서 구축 후 외부에서 연결
 - [ - ] WireGuard 피어 키 자동 생성
-- [ - ] Lambda + API Gateway로 ON/OFF 가능한 엔드포인트 작성
+- [ ○ ] ~~Lambda + API Gateway로 ON/OFF 가능한 엔드포인트 작성~~ → Github Actions 에서 간단히 ON/OFF 가능하도록 구현
 - [ - ] 스토리지 자동 백업
