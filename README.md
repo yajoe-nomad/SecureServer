@@ -17,11 +17,7 @@ VPN(WireGuard)를 통해 접속하여 안전하게 내부의 데이터에 접근
 
 ## Architecture
 
-<<<<<<< HEAD
 ![Alt text](./architecture.drawio.png)
-=======
-![Alt text](/secure-webdav-on-aws/architecture.drawio.png)
->>>>>>> d178706bbace83bda57f8a88d099e3aed7f30597
 
 ### 왜 이러한 디자인으로 했는가?
 
