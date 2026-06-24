@@ -47,9 +47,8 @@ jobs:
           path: .terraform
           key: ${{ runner.os }}-terraform-${{ github.run_id }}
       
-      - name: Convert Repository Name to Lowercase
+      - name: 대문자를 소문자로 변환하여 환경변수로 저장(plan 내부)
         run: |
-          # 대문자를 소문자로 변환하여 글로벌 env에 저장
           REPO_NAME_LOWER=$(echo "terraform-backend-${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
           echo "BACKEND_BUCKET_NAME=$REPO_NAME_LOWER" >> $GITHUB_ENV
       
@@ -103,9 +102,8 @@ jobs:
           name: tfplan
           path: terraform
       
-      - name: Convert Repository Name to Lowercase
+      - name: 대문자를 소문자로 변환하여 환경변수로 저장(apply, destroy 내부)
         run: |
-          # 대문자를 소문자로 변환하여 글로벌 env에 저장
           REPO_NAME_LOWER=$(echo "terraform-backend-${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
           echo "BACKEND_BUCKET_NAME=$REPO_NAME_LOWER" >> $GITHUB_ENV
 
